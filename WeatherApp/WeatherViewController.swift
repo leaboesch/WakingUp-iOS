@@ -10,12 +10,11 @@ import UIKit
 import CoreLocation
 
 /*
- @IBOutlet weak var lakeSelected: UIPickerView!
  * Brugg AG: 47.479501, 8.213011
  */
 
 class WeatherViewController: UIViewController, UIPickerViewDelegate, UIPickerViewDataSource{
-    //let locationManager = CLLocationManager()
+   // let locationManager = CLLocationManager()
     
     // for Lake Picker
     @IBOutlet weak var lakeLabel: UILabel!
@@ -23,6 +22,10 @@ class WeatherViewController: UIViewController, UIPickerViewDelegate, UIPickerVie
     
     fileprivate var weatherRequest: WeatherRequest? = nil
    // fileprivate var location: CLLocation? = nil
+    
+    var weatherData_openweather : WeatherData? = nil
+    var weatherData_wiewarm : WeatherData? = nil
+    
     
     @IBOutlet weak var cityLabel: UILabel!
     @IBOutlet weak var weatherLabel: UILabel!
@@ -50,22 +53,20 @@ class WeatherViewController: UIViewController, UIPickerViewDelegate, UIPickerVie
     func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
         lakeLabel.text = lakes[row]
         selectedLake = lakes[row]
-        performServerRequest_Lake()
+        perform_all_Server_Requests()
     }
   
     
-    
-    
-    
-    
+  
     
     override func viewDidLoad() {
         super.viewDidLoad()
         lakePicker.delegate = self
         lakePicker.dataSource = self
-       // locationManager.delegate = self
+        //locationManager.delegate = self
         //locationManager.requestLocation()
-        askForPermission()
+        //askForPermission()
+
     }
     
     
@@ -77,16 +78,86 @@ class WeatherViewController: UIViewController, UIPickerViewDelegate, UIPickerVie
         self.present(alertController, animated: true, completion: nil)
     }
     
-    fileprivate func performServerRequest_Lake() {
+    
+    // Startet die zwei Server-Requests bei openweather und wiewarm
+    func perform_all_Server_Requests(){
+        performServerRequest_openweather()
+    }
+    
+    
+    // Löst die zwei Requests aus beim Start der App
+    func perform_all_Server_Requests_Initial(){
+        performServerRequest_openweather_Initial()
+    }
+    
+    
+    // Openweather Request mit LakePicker Location
+    fileprivate func performServerRequest_openweather() {
         
-        // hier koordinaten für den see finden
-        
-        let request = WeatherRequest(lakeName: selectedLake)
+        let request = WeatherRequest(lakeName: selectedLake, latitude: 47.479501, longitude: 8.213011)
  
-        request.performRequest(successHandler: { (weatherData: WeatherData) in
+        request.performRequest_openWeather(successHandler: { (weatherData: WeatherData) in
             
             DispatchQueue.main.async {
-                self.updateUI(weatherData: weatherData)
+                self.weatherData_openweather = weatherData
+                self.updateUI();            }
+            
+        }) {
+            print("error loading weather")
+        }
+    }
+    
+    
+    
+    // Openweather Request beim Start der App, mit Location des Geräts
+    fileprivate func performServerRequest_openweather_Initial() {
+        
+        
+        let request = WeatherRequest(lakeName: selectedLake, latitude: 47.479501, longitude: 8.213011)
+        request.performRequest_openweather_Initial(successHandler: { (weatherData: WeatherData) in
+            
+            DispatchQueue.main.async {
+                self.weatherData_openweather = weatherData
+                self.updateUI();
+
+            }
+            
+        }) {
+            print("error loading weather")
+        }
+    }
+    
+    
+    // Wie Warm Request mit LakePicker Location
+    fileprivate func performServerRequest_wieWarm() {
+        
+        let request = WeatherRequest(lakeName: selectedLake, latitude: 47.479501, longitude: 8.213011)
+        
+        request.performRequest_wieWarm(successHandler: { (weatherData: WeatherData) in
+            
+            DispatchQueue.main.async {
+                self.weatherData_wiewarm = weatherData
+                self.updateUI()
+
+            }
+            
+        }) {
+            print("error loading weather")
+        }
+    }
+    
+    
+    // Wie Warm Request mit Location des Geräts
+    fileprivate func performServerRequest_wieWarm_Initial() {
+        
+        let request = WeatherRequest(lakeName: selectedLake, latitude: 47.479501, longitude: 8.213011)
+        
+        request.performRequest_wieWarm_Initial(successHandler: { (weatherData: WeatherData) in
+            
+            DispatchQueue.main.async {
+                self.weatherData_wiewarm = weatherData
+                self.updateUI()
+
             }
             
         }) {
@@ -96,21 +167,22 @@ class WeatherViewController: UIViewController, UIPickerViewDelegate, UIPickerVie
     
     
     
-    private func updateUI(weatherData:WeatherData){
     
-       cityLabel.text = weatherData.city
-
+    private func updateUI(weatherData:WeatherData){
+        
+        cityLabel.text = weatherData.city
+        
         weatherLabel.text = weatherData.weather
         
-      
+        
         tempLabel.text = weatherData.formattedTemp
         var temp = weatherData.formattedTemp
         temp.characters.removeLast()
         
         if let temperature = Double(temp){
             if temperature < 13.0{
-                    tempLabel.text = "1"
-                    weatherLabel.text = "Chli chalt"
+                tempLabel.text = "1"
+                weatherLabel.text = "Chli chalt"
             }
             else if temperature < 20.0{
                 tempLabel.text = "3"
@@ -136,9 +208,61 @@ class WeatherViewController: UIViewController, UIPickerViewDelegate, UIPickerVie
                 DispatchQueue.main.async {
                     self.updateImage(image: image)
                 }
+            }, errorHandler: {
+                print("error loading weather icon")
+            })
+        }
+    }
+
+    
+    
+    // updateUI, das auf die aktuellen weatherData_ von openweather und wiewarm zugreift.
+    private func updateUI(){
+        if weatherData_openweather != nil /*&& weatherData_wiewarm != nil*/ {
+            
+       cityLabel.text = weatherData_openweather!.city
+
+        weatherLabel.text = weatherData_openweather!.weather
+        
+      
+        tempLabel.text = weatherData_openweather!.formattedTemp
+        var temp = weatherData_openweather!.formattedTemp
+        temp.characters.removeLast()
+        
+        if let temperature = Double(temp){
+            if temperature < 13.0{
+                    tempLabel.text = "1"
+                    weatherLabel.text = "Chli chalt"
+            }
+            else if temperature < 20.0{
+                tempLabel.text = "3"
+                weatherLabel.text = "Für die Motivierten"
+            }
+            else if temperature < 30.0{
+                tempLabel.text = "6"
+                weatherLabel.text = "Go for it!"
+            }
+            else {
+                tempLabel.text = "10"
+                weatherLabel.text = "Abkühlung gefällig?"
+            }
+        }
+        
+        minTempLabel.text = weatherData_openweather!.formattedMinTemp
+        maxTempLabel.text = weatherData_openweather!.formattedMaxTemp
+        humidityLabel.text = weatherData_openweather!.formattedHumidity
+        
+        if let imageName = weatherData_openweather!.icon{
+            let imageRequest = WeatherIconRequest(iconName: imageName)
+            imageRequest.performRequest(successHandler: { (image : UIImage) in
+                DispatchQueue.main.async {
+                    self.updateImage(image: image)
+                }
             }, errorHandler: { 
                 print("error loading weather icon")
             })
+        }
+            
         }
     }
     
@@ -154,40 +278,8 @@ class WeatherViewController: UIViewController, UIPickerViewDelegate, UIPickerVie
 }
 
 
-extension WeatherViewController : CLLocationManagerDelegate{
-    
- 
+
 
     
 
-    fileprivate func checkPermission() {
-        
-        print("Checking permission")
-        switch(CLLocationManager.authorizationStatus()) {
-        case .denied:
-            showDeviceNotAllowed()
-        case .restricted:
-            showDeviceNotAllowed()
-        case .notDetermined:
-            askForPermission()
-        case .authorizedWhenInUse:
-            startLocationRequest()
-        default:
-            print("other status, do nothing")
-        }
-    }
-    
-    
-    fileprivate func askForPermission() {
-        print("Requesting permission")
-        //locationManager.requestWhenInUseAuthorization()
-    }
-    
-    fileprivate func startLocationRequest() {
-        print("Start location request")
-       // locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
-        //locationManager.startUpdatingLocation()
-    }
-    
-}
 
