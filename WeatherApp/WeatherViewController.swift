@@ -66,7 +66,7 @@ class WeatherViewController: UIViewController, UIPickerViewDelegate, UIPickerVie
         //locationManager.delegate = self
         //locationManager.requestLocation()
         //askForPermission()
-
+        performServerRequest_openweather_Initial()
     }
     
     
